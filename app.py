@@ -1,47 +1,68 @@
 import streamlit as st
 import requests
-from urllib.parse import quote
 
-# Freesound API 인증 키
-FREESOUND_API_KEY = "6xbTcaH4kDOXvKTCg8NJqZCTVKiRgGZI0C5S0hFX"
+API_KEY = "6xbTcaH4kDOXvKTCg8NJqZCTVKiRgGZI0C5S0hFX"
 
-# Freesound 검색 함수
-def search_freesound(query):
-    encoded = quote(query)
-    url = f"https://freesound.org/apiv2/search/text/?query={encoded}&fields=name,id,previews&token={FREESOUND_API_KEY}&sort=downloads_desc&page_size=5"
-    try:
-        res = requests.get(url, timeout=5)
-        if res.status_code != 200:
-            return []
-        data = res.json()
-        results = []
-        for s in data.get("results", []):
-            preview = s.get("previews", {}).get("preview-hq-mp3")
-            if preview:
-                results.append({
-                    "name": s.get("name", "Unnamed"),
-                    "preview": preview,
-                    "url": f"https://freesound.org/s/{s['id']}/"
-                })
-        return results
-    except:
+def search_freesound_api(query):
+    url = (
+        f"https://freesound.org/apiv2/search/text/"
+        f"?query={query}&fields=name,id,previews&token={API_KEY}"
+        f"&sort=downloads_desc&page_size=5"
+    )
+    res = requests.get(url)
+
+    if res.status_code != 200:
+        st.error("API 요청 실패 😢")
         return []
 
-# UI 구성
+    data = res.json()
+    results = []
+    for sound in data.get("results", []):
+        preview = sound.get("previews", {}).get("preview-hq-mp3")
+        if preview:
+            results.append({
+                "name": sound.get("name", "제목 없음"),
+                "preview": preview,
+                "url": f"https://freesound.org/s/{sound['id']}/"
+            })
+    return results
+
+# 페이지 구성
 st.set_page_config(page_title="효과음 검색기", layout="centered")
 
-st.markdown("<h4 style='text-align: center;'>🔍 효과음 검색기</h4>", unsafe_allow_html=True)
-query = st.text_input("효과음을 검색하세요 (예: 비, 파도, 종소리)", "")
+# 스타일 설정
+st.markdown("""
+<style>
+h1, h2, h3 {
+    text-align: center;
+    font-size: 0.65rem !important; /* 타이틀 크기를 줄였습니다. 원래 1.3rem */
+}
+.sound-title {
+    font-size: 1rem;
+    font-weight: bold;
+    margin-bottom: 0.2rem;
+}
+.download-link {
+    font-size: 0.9rem;
+    color: #2563eb;
+    margin-top: 0.3rem;
+    display: inline-block;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# UI 헤더
+st.markdown("### 🔍 Freesound 효과음 검색기")
+
+# 검색창
+query = st.text_input("효과음을 검색하세요 (예: rain, bell)")
 
 if st.button("검색") and query:
-    with st.spinner("🔎 검색 중..."):
-        results = search_freesound(query)
-
-        if results:
-            for r in results:
-                st.markdown(f"**🎵 {r['name']}**")
-                st.audio(r['preview'])
-                st.markdown(f"[Freesound에서 보기]({r['url']})", unsafe_allow_html=True)
-        else:
-            st.warning("검색 결과가 없습니다.")
-            st.markdown("🔎 찾고있는 효과음이 없다면 아래에서 Freesound를 검색해보세요.", unsafe_allow_html=True)
+    with st.spinner("검색 중..."):
+        results = search_freesound_api(query)
+        if not results:
+            st.warning("결과가 없습니다. 영어로 검색해보세요.")
+        for r in results:
+            st.markdown(f"<div class='sound-title'>🎵 {r['name']}</div>", unsafe_allow_html=True)
+            st.audio(r['preview'])
+            st.markdown(f"<a href='{r['url']}' target='_blank' class='download-link'>🔗 Freesound에서 다운로드</a>", unsafe_allow_html=True)
