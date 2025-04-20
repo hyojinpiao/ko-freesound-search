@@ -35,7 +35,7 @@ st.markdown("""
 <style>
 h1, h2, h3 {
     text-align: center;
-    font-size: 1rem !important; /* 타이틀 크기를 1rem으로 변경 */
+    font-size: 1.3rem !important;
 }
 .sound-title {
     font-size: 1rem;
@@ -55,7 +55,7 @@ h1, h2, h3 {
 st.markdown("### 🔍 Freesound 효과음 검색기")
 
 # 검색창
-query = st.text_input("효과음을 검색하세요", placeholder="(영어로 검색하세요)") # placeholder 추가
+query = st.text_input("효과음을 검색하세요 (예: rain, bell)")
 
 if st.button("검색") and query:
     with st.spinner("검색 중..."):
