@@ -2,12 +2,12 @@ import streamlit as st
 import requests
 from urllib.parse import quote
 
-# 인증 키
+# ✅ 인증 정보
 FREESOUND_API_KEY = "6xbTcaH4kDOXvKTCg8NJqZCTVKiRgGZI0C5S0hFX"
 PAPAGO_CLIENT_ID = "ou64ob8r3r"
 PAPAGO_CLIENT_SECRET = "nNqSptDXMb0e0hNp1JhJSiIFGN1qgWegWfS2DmDk"
 
-# Papago 번역
+# ✅ Papago 번역 함수
 def papago_translate(text):
     url = "https://openapi.naver.com/v1/papago/n2mt"
     headers = {
@@ -27,11 +27,15 @@ def papago_translate(text):
         pass
     return text  # 실패 시 원문 그대로
 
-# Freesound 검색
+# ✅ Freesound 검색 함수
 def search_freesound(query):
-    translated = papago_translate(query)
+    translated = papago_translate(query).lower().strip()  # 번역 → 소문자화
     encoded = quote(translated)
-    url = f"https://freesound.org/apiv2/search/text/?query={encoded}&fields=name,id,previews&token={FREESOUND_API_KEY}&sort=downloads_desc&page_size=5"
+    url = (
+        f"https://freesound.org/apiv2/search/text/?query={encoded}"
+        f"&fields=name,id,previews&token={FREESOUND_API_KEY}"
+        f"&sort=downloads_desc&page_size=5"
+    )
     try:
         res = requests.get(url, timeout=5)
         if res.status_code != 200:
@@ -50,9 +54,9 @@ def search_freesound(query):
     except:
         return []
 
-# UI
+# ✅ Streamlit UI
 st.set_page_config(page_title="효과음 검색기", layout="centered")
-st.title("🔍 효과음 검색기")
+st.markdown("### 🔍 효과음 검색기")
 query = st.text_input("효과음을 검색하세요 (예: 비, 파도, 종소리)")
 
 if st.button("검색") and query:
