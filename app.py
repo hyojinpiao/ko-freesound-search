@@ -30,7 +30,7 @@ def search_freesound(query):
 # UI 구성
 st.set_page_config(page_title="효과음 검색기", layout="centered")
 
-st.markdown("<h3 style='text-align: center;'>🔍 효과음 검색기</h3>", unsafe_allow_html=True)
+st.markdown("<h4 style='text-align: center;'>🔍 효과음 검색기</h4>", unsafe_allow_html=True)
 query = st.text_input("효과음을 검색하세요 (예: 비, 파도, 종소리)", "")
 
 if st.button("검색") and query:
