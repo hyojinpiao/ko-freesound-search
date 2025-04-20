@@ -1,20 +1,47 @@
 import streamlit as st
 import requests
+from urllib.parse import quote
 
 API_KEY = "6xbTcaH4kDOXvKTCg8NJqZCTVKiRgGZI0C5S0hFX"
 
-# 내 사이트에서 자동으로 불러오기
+# 🔤 간단 번역 맵
+keyword_map = {
+    "비": "rain",
+    "물": "water",
+    "종": "bell",
+    "바람": "wind",
+    "불": "fire",
+    "새": "bird",
+    "발자국": "footsteps",
+    "기차": "train",
+    "자동차": "car",
+    "피아노": "piano",
+    "고양이": "cat",
+    "개": "dog",
+}
+
+def translate_keyword(kor_word):
+    return keyword_map.get(kor_word.strip(), kor_word)
+
+# ✅ 내 효과음
 def search_my_soundmusic(query):
-    url = f"https://freesoundcraft.com/wp-json/wp/v2/soundmusic?search={query}&per_page=5"
+    url = f"https://freesoundcraft.com/wp-json/wp/v2/soundmusic?search={quote(query)}&per_page=5"
     res = requests.get(url)
     if res.status_code != 200:
         return []
-    
     data = res.json()
     results = []
     for item in data:
         acf = item.get("acf", {})
-        preview_url = acf.get("preview_link") or acf.get("preview_1")  # 대표 미리듣기
+        preview_url = None
+        if isinstance(acf, list):
+            for entry in acf:
+                if isinstance(entry, dict):
+                    preview_url = entry.get("preview_link") or entry.get("preview_1")
+                    if preview_url:
+                        break
+        elif isinstance(acf, dict):
+            preview_url = acf.get("preview_link") or acf.get("preview_1")
         if preview_url:
             results.append({
                 "name": item["title"]["rendered"],
@@ -23,15 +50,14 @@ def search_my_soundmusic(query):
             })
     return results
 
-# Freesound API
+# ✅ Freesound (영어로 번역 후 검색)
 def search_freesound(query):
-    url = (
-        f"https://freesound.org/apiv2/search/text/"
-        f"?query={query}&fields=name,id,previews&token={API_KEY}"
-        f"&sort=downloads_desc&page_size=5"
-    )
+    translated = translate_keyword(query)
+    encoded = quote(translated)
+    url = f"https://freesound.org/apiv2/search/text/?query={encoded}&fields=name,id,previews&token={API_KEY}&sort=downloads_desc&page_size=5"
     res = requests.get(url)
     if res.status_code != 200:
+        st.error(f"Freesound API 오류 (코드 {res.status_code})")
         return []
     data = res.json()
     results = []
@@ -45,10 +71,10 @@ def search_freesound(query):
             })
     return results
 
-# 페이지 세팅
+# ✅ UI
 st.set_page_config(page_title="효과음 검색기", layout="centered")
 st.markdown("### 🔍 효과음 검색기")
-query = st.text_input("효과음을 검색하세요 (예: 비, rain, bell)")
+query = st.text_input("효과음을 검색하세요 (예: 비, 불, rain, bell 등)")
 
 if st.button("검색") and query:
     with st.spinner("검색 중..."):
