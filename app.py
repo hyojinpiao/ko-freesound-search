@@ -3,66 +3,71 @@ import requests
 
 API_KEY = "6xbTcaH4kDOXvKTCg8NJqZCTVKiRgGZI0C5S0hFX"
 
-def search_freesound_api(query):
+# 내 사이트에서 자동으로 불러오기
+def search_my_soundmusic(query):
+    url = f"https://freesoundcraft.com/wp-json/wp/v2/soundmusic?search={query}&per_page=5"
+    res = requests.get(url)
+    if res.status_code != 200:
+        return []
+    
+    data = res.json()
+    results = []
+    for item in data:
+        acf = item.get("acf", {})
+        preview_url = acf.get("preview_link") or acf.get("preview_1")  # 대표 미리듣기
+        if preview_url:
+            results.append({
+                "name": item["title"]["rendered"],
+                "preview": preview_url,
+                "url": item["link"]
+            })
+    return results
+
+# Freesound API
+def search_freesound(query):
     url = (
         f"https://freesound.org/apiv2/search/text/"
         f"?query={query}&fields=name,id,previews&token={API_KEY}"
         f"&sort=downloads_desc&page_size=5"
     )
     res = requests.get(url)
-
     if res.status_code != 200:
-        st.error("API 요청 실패 😢")
         return []
-
     data = res.json()
     results = []
-    for sound in data.get("results", []):
-        preview = sound.get("previews", {}).get("preview-hq-mp3")
+    for s in data.get("results", []):
+        preview = s.get("previews", {}).get("preview-hq-mp3")
         if preview:
             results.append({
-                "name": sound.get("name", "제목 없음"),
+                "name": s.get("name", "Unnamed"),
                 "preview": preview,
-                "url": f"https://freesound.org/s/{sound['id']}/"
+                "url": f"https://freesound.org/s/{s['id']}/"
             })
     return results
 
-# 페이지 구성
+# 페이지 세팅
 st.set_page_config(page_title="효과음 검색기", layout="centered")
-
-# 스타일 설정
-st.markdown("""
-<style>
-h1, h2, h3 {
-    text-align: center;
-    font-size: 1.3rem !important;
-}
-.sound-title {
-    font-size: 1rem;
-    font-weight: bold;
-    margin-bottom: 0.2rem;
-}
-.download-link {
-    font-size: 0.9rem;
-    color: #2563eb;
-    margin-top: 0.3rem;
-    display: inline-block;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# UI 헤더
-st.markdown("### 🔍 Freesound 효과음 검색기")
-
-# 검색창
-query = st.text_input("효과음을 검색하세요 (예: rain, bell)")
+st.markdown("### 🔍 효과음 검색기")
+query = st.text_input("효과음을 검색하세요 (예: 비, rain, bell)")
 
 if st.button("검색") and query:
     with st.spinner("검색 중..."):
-        results = search_freesound_api(query)
-        if not results:
-            st.warning("결과가 없습니다. 영어로 검색해보세요.")
-        for r in results:
-            st.markdown(f"<div class='sound-title'>🎵 {r['name']}</div>", unsafe_allow_html=True)
-            st.audio(r['preview'])
-            st.markdown(f"<a href='{r['url']}' target='_blank' class='download-link'>🔗 Freesound에서 다운로드</a>", unsafe_allow_html=True)
+        my_results = search_my_soundmusic(query)
+        fs_results = search_freesound(query)
+
+        if my_results:
+            st.markdown("### 🎧 내가 만든 효과음")
+            for r in my_results:
+                st.markdown(f"**🎵 {r['name']}**")
+                st.audio(r['preview'])
+                st.markdown(f"[내 사이트에서 보기]({r['url']})", unsafe_allow_html=True)
+
+        if fs_results:
+            st.markdown("### 🌍 Freesound 효과음")
+            for r in fs_results:
+                st.markdown(f"**🎵 {r['name']}**")
+                st.audio(r['preview'])
+                st.markdown(f"[Freesound에서 보기]({r['url']})", unsafe_allow_html=True)
+
+        if not my_results and not fs_results:
+            st.warning("검색 결과가 없습니다.")
